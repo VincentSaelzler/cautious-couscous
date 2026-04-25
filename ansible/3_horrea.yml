@@ -1,7 +1,5 @@
 - name: Setup Borg backup mount
-  hosts: localhost
-  connection: local
-  gather_facts: false
+  hosts: horrea
   become: true
 
   tasks:
@@ -24,22 +22,19 @@
         group: marcus
         state: directory
 
-    - name: Create systemd override directory for Btrfs scrub template
-      ansible.builtin.file:
-        path: /etc/systemd/system/btrfs-scrub@.timer.d
-        state: directory
-
     - name: Set global Btrfs scrub schedule to hourly
       ansible.builtin.copy:
-        dest: /etc/systemd/system/btrfs-scrub@.timer.d/override.conf
+        dest: /usr/lib/systemd/system/btrfs-scrub@.timer
         content: |
+          [Unit]
+          Description=Btrfs scrub on %f
+
           [Timer]
-          # Clear the default monthly schedule
-          OnCalendar=
-          # Set new hourly schedule
           OnCalendar=hourly
-          # Remove the 1-week random delay for immediate testing
-          RandomizedDelaySec=0
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
       register: timer_override
 
     - name: Reload systemd to apply changes
@@ -47,4 +42,18 @@
         daemon_reload: true
       when: timer_override.changed
 
-  
+    - name: Ensure timer instance is enabled and started
+      ansible.builtin.systemd:
+        name: btrfs-scrub@var-backups-borg.timer
+        enabled: true
+        state: started
+
+    - name: Gather merged timer unit (template + drop-ins)
+      ansible.builtin.command:
+        cmd: systemctl cat btrfs-scrub@.timer --no-pager
+      register: timer_cat
+      changed_when: false
+
+    - name: Display merged timer unit (template + drop-ins)
+      ansible.builtin.debug:
+        msg: "{{ timer_cat.stdout_lines }}"
