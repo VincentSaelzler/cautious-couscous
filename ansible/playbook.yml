@@ -1,0 +1,50 @@
+- name: Setup Borg backup mount
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Mount Borg backup volume
+      # This creates the directory AND handles /etc/fstab
+      ansible.posix.mount:
+        path: /var/backups/borg
+        src: LABEL=backups
+        fstype: btrfs
+        opts: rw,noatime,compress=zstd,ssd,space_cache=v2,discard=async
+        dump: "0"
+        passno: "0"
+        state: mounted
+
+    - name: Set ownership on the mounted filesystem
+      # This applies the owner to the disk itself
+      file:
+        path: /var/backups/borg
+        owner: marcus
+        group: marcus
+        state: directory
+
+    - name: Create systemd override directory for Btrfs scrub template
+      ansible.builtin.file:
+        path: /etc/systemd/system/btrfs-scrub@.timer.d
+        state: directory
+
+    - name: Set global Btrfs scrub schedule to hourly
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/btrfs-scrub@.timer.d/override.conf
+        content: |
+          [Timer]
+          # Clear the default monthly schedule
+          OnCalendar=
+          # Set new hourly schedule
+          OnCalendar=hourly
+          # Remove the 1-week random delay for immediate testing
+          RandomizedDelaySec=0
+      register: timer_override
+
+    - name: Reload systemd to apply changes
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: timer_override.changed
+
+  

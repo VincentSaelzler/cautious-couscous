@@ -1,0 +1,27 @@
+---
+- name: Copy configuration files to into /etc/ansible/
+  hosts: coliseum
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Ensure /etc/ansible directory exists
+      file:
+        path: /etc/ansible
+        state: directory
+        owner: marcus
+        group: marcus
+
+    - name: Copy inventory.yml to /etc/ansible/hosts
+      copy:
+        src: inventory.yml
+        dest: /etc/ansible/hosts
+        owner: marcus
+        group: marcus
+
+    - name: Copy ansible.cfg to /etc/ansible/ansible.cfg
+      copy:
+        src: ansible.cfg
+        dest: /etc/ansible/
+        owner: marcus
+        group: marcus
