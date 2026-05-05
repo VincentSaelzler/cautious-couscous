@@ -1,0 +1,21 @@
+- name: Setup Borg backup software
+  hosts: horrea
+  become: true
+  tasks:
+    - name: Configure logind.conf
+      ansible.builtin.ini_file:
+        path: /etc/systemd/logind.conf
+        section: Login
+        option: HandleLidSwitch
+        value: ignore
+      register: logind_conf
+
+    - name: Restart systemd-logind if logind.conf changed
+      ansible.builtin.systemd:
+        name: systemd-logind
+        state: restarted
+      when: logind_conf.changed
+
+    - name: Install borg
+      ansible.builtin.pacman:
+        name: brightnessctl
