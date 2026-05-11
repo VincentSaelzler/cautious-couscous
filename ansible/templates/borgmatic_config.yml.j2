@@ -1,0 +1,20 @@
+source_directories_must_exist: true
+source_directories:
+{% for directory in backup_dirs %}
+  - {{ directory }}
+{% endfor %}
+exclude_patterns:
+  - "*/.stfolder"
+
+repositories:
+  - path: /var/backups/borg/coliseum
+    label: horrea
+    encryption: repokey-blake2
+  # - path: ssh://d0im7qb1@d0im7qb1.repo.borgbase.com/./repo
+  #   label: borgbase
+  #   encryption: repokey-blake2
+
+keep_daily: 7
+keep_weekly: 5
+keep_monthly: 12
+keep_yearly: -1 # forever

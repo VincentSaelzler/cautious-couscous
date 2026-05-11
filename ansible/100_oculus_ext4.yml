@@ -1,0 +1,23 @@
+- name: Setup Frigate backup mount
+  hosts: oculus
+  become: true
+
+  tasks:
+    - name: Mount Frigate NVMe storage volume
+      # This manages /etc/fstab and mounts the 931.5GB drive
+      ansible.posix.mount:
+        path: /mnt/frigate
+        src: LABEL=frigate_storage
+        fstype: ext4
+        opts: defaults,noatime
+        dump: "0"
+        passno: "2"
+        state: mounted
+
+    - name: Set host ownership on the Frigate mount
+      # This ensures the 'marcus' user owns the mount point on the host
+      file:
+        path: /mnt/frigate
+        owner: marcus
+        group: marcus
+        state: directory

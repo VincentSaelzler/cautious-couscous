@@ -1,0 +1,46 @@
+- name: Setup Borg backup software
+  hosts: horrea
+  become: true
+  tasks:
+    - name: Install borgmatic
+      ansible.builtin.pacman:
+        name: borgmatic
+
+- name: Setup Borg backup software
+  hosts: horrea
+  tasks:
+    - name: Ensure directory exists
+      file:
+        path: ~/.config/borgmatic
+        state: directory
+
+    - name: Copy templated config file
+      ansible.builtin.template:
+        src: borgmatic_config.yml.j2
+        dest: ~/.config/borgmatic/config.yaml
+
+    - name: Clear existing source directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ backup_dirs }}"
+
+    - name: Recreate empty source directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      loop: "{{ backup_dirs }}"
+
+    - name: Clear temporary restore directory
+      ansible.builtin.file:
+        path: ~/restore
+        state: absent
+
+    - name: Create temporary restore directory
+      ansible.builtin.file:
+        path: ~/restore
+        state: directory
+
+  
+# 
+# borgmatic extract --repository horrea --archive coliseum-2026-05-04T22:00:04.054529

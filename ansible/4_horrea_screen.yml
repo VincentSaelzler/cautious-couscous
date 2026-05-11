@@ -16,6 +16,6 @@
         state: restarted
       when: logind_conf.changed
 
-    - name: Install borg
+    - name: Install brightnessctl
       ansible.builtin.pacman:
         name: brightnessctl

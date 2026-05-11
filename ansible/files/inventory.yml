@@ -4,3 +4,4 @@ all:
     coliseum:
       ansible_connection: local
     horrea:
+    oculus:
