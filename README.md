@@ -3,6 +3,14 @@ Home Lab | Cadence | Apr 2026
 
 ```sh
 sudo pacman -S ansible
+sudo apt install ansible-core
+# don't want this for now, but good to have as a reference
+# echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/$USER
+ssh-keygen
+ssh-keygen -R horrea
+ssh-copy-id horrea
+ssh horrea
+
 # clone this repo
 cd ~/cautious-couscous/ansible
 # configure this host to be the ansible controller
@@ -11,11 +19,9 @@ ansible-playbook 0_bootstrap.yml -i ./files/inventory.yml --ask-become-pass
 ansible-playbook --ask-become-pass
 ```
 
-
 ```sh
 sudo brightnessctl set 100%
 sudo brightnessctl set 0%
 ```
 
 Lots of documentation is at https://github.com/VincentSaelzler/onebox/
-

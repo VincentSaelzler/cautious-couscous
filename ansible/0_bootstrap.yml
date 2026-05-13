@@ -1,7 +1,6 @@
 ---
 - name: Copy configuration files to into /etc/ansible/
-  hosts: coliseum
-  gather_facts: false
+  hosts: localhost
   become: true
 
   tasks:
@@ -25,3 +24,18 @@
         dest: /etc/ansible/
         owner: marcus
         group: marcus
+
+- name: Configure Git
+  hosts: localhost
+  become: false
+  tasks:
+    - name: Set Git User
+      git_config:
+        name: user.name
+        value: "Vincent Saelzler"
+        scope: global
+    - name: Set Git Email
+      git_config:
+        name: user.email
+        value: "vincent.saelzler@gmail.com"
+        scope: global

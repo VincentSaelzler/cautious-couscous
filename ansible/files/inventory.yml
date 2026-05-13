@@ -1,7 +1,7 @@
 ---
 all:
   hosts:
-    coliseum:
-      ansible_connection: local
     horrea:
     oculus:
+    localhost:
+      ansible_connection: local
