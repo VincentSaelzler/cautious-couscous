@@ -1,4 +1,4 @@
-- name: Setup Borg backup software
+- name: Setup display
   hosts: horrea
   become: true
   tasks:
