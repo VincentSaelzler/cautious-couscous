@@ -2,53 +2,110 @@
 
 Home Lab | Cadence | Apr 2026
 
-## Configure SSH Key Authentication
+Lots of documentation is at <https://github.com/VincentSaelzler/onebox/>
+
+## 1. OS Provisioning (`horrea`)
+
+Boot the laptop (`horrea`) into the Arch Linux live environment (`archiso`) and set a temporary root password:
 
 ```sh
-⚠️⚠️⚠️ ROOT OF ALL TRUST ⚠️⚠️⚠️
-ssh-keygen
+passwd
 ```
 
+From the controller, connect to the live environment to securely wipe the primary drive (`/dev/sda`):
+
 ```sh
-# ensure horrea is a known, trusted, and accessible host
+ssh-keygen -R archiso
+ssh root@archiso
+
+# Securely erase the primary drive
+hdparm -I /dev/sda
+hdparm --yes-i-know-what-i-am-doing --sanitize-block-erase /dev/sda
+hdparm --sanitize-status /dev/sda
+
+# Verify wipe (check first and last 2GB)
+hexdump -C -n 2G /dev/sda
+tail -c 2G /dev/sda | hexdump -C
+```
+
+*(Optional)* Only do this if wiping the secondary drive (`/dev/sdb`) which contains the backups:
+
+```sh
+hdparm -I /dev/sdb
+hdparm --yes-i-know-what-i-am-doing --sanitize-block-erase /dev/sdb
+hdparm --sanitize-status /dev/sdb
+
+# Verify wipe
+hexdump -C -n 2G /dev/sdb
+tail -c 2G /dev/sdb | hexdump -C
+
+# Initialize the filesystem
+mkfs.btrfs --label backups /dev/sdb
+mount LABEL=backups /mnt
+btrfs filesystem show /mnt
+umount /mnt
+```
+
+Install Arch Linux using the saved configuration on the Ventoy USB (it evolves often, so it is not in source control), then power off:
+
+```sh
+partprobe
+mkdir /usb
+lsblk
+mount /dev/mapper/sdc1 /usb  # Adjust path based on lsblk
+
+archinstall --config /usb/horrea/user_configuration.json --creds /usb/horrea/user_credentials.json
+poweroff
+```
+
+## 2. SSH Authentication
+
+Establish trust with the newly installed host from the controller (the root of all trust):
+
+```sh
+# Ensure horrea is a known, trusted, and accessible host
 ssh-keygen -R horrea
 ssh-copy-id horrea
 ssh horrea
-⚠️ APPEND-ONLY AUTHENTICATION ON BORGBASE ⚠️
-ssh-keygen
+```
+
+Generate a dedicated SSH key on `horrea` for **append-only authentication to Borgbase**:
+
+```sh
+ssh-keygen -t ed25519
 cat ~/.ssh/id_ed25519.pub
 ```
 
-## Borgbase Repositories
+## 3. Borgbase Repository Setup
 
-ℹ️ manually create a repository on borgbase
+1. **Create Repository:** Manually create a new repository on Borgbase.
+2. **Add Key:** Associate `horrea`'s new SSH key with your Borgbase account and grant it append-only access to the repository.
+3. **Update Config:** Update the repository URL in `./ansible/templates/borgmatic_config.yml.j2`.
+4. **Encryption:** Generate a strong passphrase for the repository and save it in LastPass.
 
-ℹ️ manually associate `horrea` ssh key with borgbase account and repo
+## 4. Ansible Deployment
 
-ℹ️ manually update repo url in `./ansible/templates/borgmatic_config.yml.j2`
-
-## Repository Encryption
-
-⚠️ generate a passphrase and save it to lastpass
-
-## Install and Configure Ansible on the Controller Machine
+Install Ansible on the controller PC and deploy the configuration:
 
 ```sh
-sudo pacman -S ansible
-sudo apt install ansible-core
+# Install Ansible
+sudo pacman -S ansible # Arch
+# sudo apt install ansible-core # Ubuntu/Debian
 
-# clone this repo
 cd ~/cautious-couscous/ansible
 
-# configure this host to be the ansible controller
+# Configure the local controller host
 ansible-playbook 0_bootstrap.yml -i ./files/inventory.yml --ask-become-pass
-# run additional playbooks
-ansible-playbook --ask-become-pass
+
+# Run remaining deployment playbooks
+ansible-playbook --ask-become-pass <playbook_name.yml>
 ```
+
+### Misc
+
+Adjust laptop brightness manually:
 
 ```sh
 sudo brightnessctl set 100%
 sudo brightnessctl set 0%
 ```
-
-Lots of documentation is at <https://github.com/VincentSaelzler/onebox/>

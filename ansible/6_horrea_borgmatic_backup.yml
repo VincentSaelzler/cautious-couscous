@@ -1,29 +1,5 @@
 ---
-- name: Configure borgmatic user settings
-  hosts: horrea
-  vars_prompt:
-    - name: borg_passphrase
-      prompt: "Borg Passphrase"
-      private: yes
-  tasks:
-    - name: Ensure borgmatic config directory exists
-      file:
-        path: /home/marcus/.config/borgmatic
-        state: directory
-
-    - name: Deploy borgmatic configuration from template
-      ansible.builtin.template:
-        src: borgmatic_config.yml.j2
-        dest: /home/marcus/.config/borgmatic/config.yaml
-
-    - name: Initialize borgmatic repository
-      ansible.builtin.command: borgmatic repo-create
-      environment:
-        BORG_PASSPHRASE: "{{ borg_passphrase }}"
-      register: repo_create_result
-      changed_when: repo_create_result.stderr != ""
-
-- name: Install borgmatic and configure systemd service
+- name: Configure borgmatic systemd service
   hosts: horrea
   become: true
   vars_prompt:
@@ -31,10 +7,6 @@
       prompt: "Borg Passphrase"
       private: yes
   tasks:
-    - name: Install borgmatic package
-      ansible.builtin.pacman:
-        name: borgmatic
-
     - name: Create encrypted systemd credential for borgmatic
       ansible.builtin.command:
         cmd: systemd-creds encrypt - /etc/credstore.encrypted/borgmatic.pw
