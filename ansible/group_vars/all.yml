@@ -1,9 +1,9 @@
 ---
 backup_dirs:
-  - "~/Camera"
-  - "~/Desktop Bethany"
-  - "~/Documents"
-  - "~/Family Photos"
-  - "~/Pictures"
-  - "~/Socials"
-  - "~/Videos"
+  - "/home/marcus/Camera"
+  - "/home/marcus/Desktop Bethany"
+  - "/home/marcus/Documents"
+  - "/home/marcus/Family Photos"
+  - "/home/marcus/Pictures"
+  - "/home/marcus/Socials"
+  - "/home/marcus/Videos"

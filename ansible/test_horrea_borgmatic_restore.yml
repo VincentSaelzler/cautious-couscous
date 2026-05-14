@@ -1,0 +1,42 @@
+---
+- name: Test Borg restore process
+  hosts: horrea
+  vars_prompt:
+    - name: borg_passphrase
+      prompt: "Borg Passphrase"
+      private: yes
+  tasks:
+    - name: Clear existing source directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ backup_dirs }}"
+
+    - name: Clear temporary restore directory
+      ansible.builtin.file:
+        path: /home/marcus/restore
+        state: absent
+
+    - name: Create temporary restore directory
+      ansible.builtin.file:
+        path: /home/marcus/restore
+        state: directory
+
+    - name: Restore latest archive from local repo
+      ansible.builtin.command: borgmatic extract --repository local --archive latest --destination /home/marcus/restore
+      environment:
+        BORG_PASSPHRASE: "{{ borg_passphrase }}"
+
+    - name: Debug move paths
+      ansible.builtin.debug:
+        msg: 'Will move: "/home/marcus/restore{{ item }}" -> "{{ item }}"'
+      loop: "{{ backup_dirs }}"
+
+    - name: Move restored directories to permanent location
+      ansible.builtin.command: mv "/home/marcus/restore{{ item }}" "{{ item }}"
+      loop: "{{ backup_dirs }}"
+
+    - name: Cleanup
+      ansible.builtin.file:
+        path: /home/marcus/restore
+        state: absent

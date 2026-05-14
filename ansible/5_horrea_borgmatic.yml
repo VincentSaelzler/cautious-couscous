@@ -8,13 +8,13 @@
   tasks:
     - name: Ensure borgmatic config directory exists
       file:
-        path: ~/.config/borgmatic
+        path: /home/marcus/.config/borgmatic
         state: directory
 
     - name: Deploy borgmatic configuration from template
       ansible.builtin.template:
         src: borgmatic_config.yml.j2
-        dest: ~/.config/borgmatic/config.yaml
+        dest: /home/marcus/.config/borgmatic/config.yaml
 
     - name: Initialize borgmatic repository
       ansible.builtin.command: borgmatic repo-create

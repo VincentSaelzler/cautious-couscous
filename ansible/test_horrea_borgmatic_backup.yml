@@ -1,0 +1,30 @@
+---
+- name: Test Borg backup process
+  hosts: horrea
+  tasks:
+    - name: Clear existing source directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ backup_dirs }}"
+
+    - name: Recreate empty source directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      loop: "{{ backup_dirs }}"
+
+    - name: Create timestamped test file in each source directory
+      ansible.builtin.file:
+        path: "{{ item }}/test_{{ '%Y%m%d_%H%M%S' | strftime }}.txt"
+        state: touch
+      loop: "{{ backup_dirs }}"
+
+- name: Trigger Borg backup
+  hosts: horrea
+  become: true
+  tasks:
+    - name: Run borgmatic backup via systemd
+      ansible.builtin.systemd:
+        name: borgmatic.service
+        state: started
