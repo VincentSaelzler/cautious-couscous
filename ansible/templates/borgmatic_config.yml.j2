@@ -10,9 +10,9 @@ repositories:
   - path: /var/backups/borg/horrea
     label: local
     encryption: repokey-blake2
-  # - path: ssh://d0im7qb1@d0im7qb1.repo.borgbase.com/./repo
-  #   label: borgbase
-  #   encryption: repokey-blake2
+  - path: ssh://{{ borgbase_repo_id }}@{{ borgbase_repo_id }}.repo.borgbase.com/./repo
+    label: borgbase
+    encryption: repokey-blake2
 
 keep_daily: 7
 keep_weekly: 5

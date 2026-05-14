@@ -7,3 +7,4 @@ backup_dirs:
   - "/home/marcus/Pictures"
   - "/home/marcus/Socials"
   - "/home/marcus/Videos"
+borgbase_repo_id: m446hp96

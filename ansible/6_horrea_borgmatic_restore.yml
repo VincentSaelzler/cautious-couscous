@@ -1,37 +1,5 @@
 ---
-- name: Install borgmatic package
-  hosts: horrea
-  become: true
-  tasks:
-    - name: Install borgmatic package
-      ansible.builtin.pacman:
-        name: borgmatic
-
-- name: Configure borgmatic user settings
-  hosts: horrea
-  vars_prompt:
-    - name: borg_passphrase
-      prompt: "Borg Passphrase"
-      private: yes
-  tasks:
-    - name: Ensure borgmatic config directory exists
-      ansible.builtin.file:
-        path: /home/marcus/.config/borgmatic
-        state: directory
-
-    - name: Deploy borgmatic configuration from template
-      ansible.builtin.template:
-        src: borgmatic_config.yml.j2
-        dest: /home/marcus/.config/borgmatic/config.yaml
-
-    - name: Initialize borgmatic repository
-      ansible.builtin.command: borgmatic repo-create
-      environment:
-        BORG_PASSPHRASE: "{{ borg_passphrase }}"
-      register: repo_create_result
-      changed_when: repo_create_result.stderr != ""
-
-- name: Test Borg restore process
+- name: Restore latest archive from borg repo
   hosts: horrea
   vars_prompt:
     - name: borg_passphrase
@@ -58,6 +26,7 @@
       ansible.builtin.command: borgmatic extract --repository local --archive latest --destination /home/marcus/restore
       environment:
         BORG_PASSPHRASE: "{{ borg_passphrase }}"
+      no_log: true
 
     - name: Debug move paths
       ansible.builtin.debug:
