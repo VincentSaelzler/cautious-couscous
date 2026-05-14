@@ -22,8 +22,9 @@
         path: /home/marcus/restore
         state: directory
 
-    - name: Restore latest archive from local repo
+    - name: Restore latest archive from local (or BorgBase) repo
       ansible.builtin.command: borgmatic extract --repository local --archive latest --destination /home/marcus/restore
+      # ansible.builtin.command: borgmatic extract --repository borgbase --archive latest --destination /home/marcus/restore
       environment:
         BORG_PASSPHRASE: "{{ borg_passphrase }}"
       no_log: true
