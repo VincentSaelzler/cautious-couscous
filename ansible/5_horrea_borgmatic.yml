@@ -1,46 +1,84 @@
-- name: Setup Borg backup software
+---
+- name: Configure borgmatic user settings
   hosts: horrea
-  become: true
+  vars_prompt:
+    - name: borg_passphrase
+      prompt: "Borg Passphrase"
+      private: yes
   tasks:
-    - name: Install borgmatic
-      ansible.builtin.pacman:
-        name: borgmatic
-
-- name: Setup Borg backup software
-  hosts: horrea
-  tasks:
-    - name: Ensure directory exists
+    - name: Ensure borgmatic config directory exists
       file:
         path: ~/.config/borgmatic
         state: directory
 
-    - name: Copy templated config file
+    - name: Deploy borgmatic configuration from template
       ansible.builtin.template:
         src: borgmatic_config.yml.j2
         dest: ~/.config/borgmatic/config.yaml
 
-    - name: Clear existing source directories
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: absent
-      loop: "{{ backup_dirs }}"
+    - name: Initialize borgmatic repository
+      ansible.builtin.command: borgmatic repo-create
+      environment:
+        BORG_PASSPHRASE: "{{ borg_passphrase }}"
+      register: repo_create_result
+      changed_when: repo_create_result.stderr != ""
 
-    - name: Recreate empty source directories
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-      loop: "{{ backup_dirs }}"
+- name: Install borgmatic and configure systemd service
+  hosts: horrea
+  become: true
+  tasks:
+    - name: Install borgmatic package
+      ansible.builtin.pacman:
+        name: borgmatic
+    - name: Create borgmatic systemd service file
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/borgmatic.service
+        content: |
+          [Unit]
+          Description=borgmatic backup
+          Wants=network-online.target
+          After=network-online.target
 
-    - name: Clear temporary restore directory
-      ansible.builtin.file:
-        path: ~/restore
-        state: absent
+          [Service]
+          Type=oneshot
+          RuntimeDirectory=borgmatic
+          StateDirectory=borgmatic
+          User=marcus
+          WorkingDirectory=/home/marcus
 
-    - name: Create temporary restore directory
-      ansible.builtin.file:
-        path: ~/restore
-        state: directory
+          # Have systemd decrypt the encrypted blob and expose it at
+          # /run/credentials/<unit>/borgmatic.pw before switching to User=marcus.
+          LoadCredentialEncrypted=borgmatic.pw:/etc/credstore.encrypted/borgmatic.pw
 
-  
-# 
-# borgmatic extract --repository horrea --archive coliseum-2026-05-04T22:00:04.054529
+          # Optional debug to confirm the runtime credential file exists (safe: does not print secret)
+          ExecStartPre=/bin/sh -c 'ls -l "$CREDENTIALS_DIRECTORY" || true'
+
+          # Read the runtime credential file into the environment and exec borgmatic.
+          # This sets BORG_PASSPHRASE only for the borgmatic process and replaces the shell with borgmatic.
+          ExecStart=/bin/sh -c 'BORG_PASSPHRASE="$(cat "$CREDENTIALS_DIRECTORY/borgmatic.pw")" exec /usr/bin/borgmatic --verbosity 2'
+      register: borgmatic_service
+
+    - name: Create borgmatic systemd timer file
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/borgmatic.timer
+        content: |
+          [Unit]
+          Description=Run borgmatic backup
+
+          [Timer]
+          OnCalendar=hourly
+
+          [Install]
+          WantedBy=timers.target
+      register: borgmatic_timer
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: borgmatic_service.changed or borgmatic_timer.changed
+
+    - name: Enable and start borgmatic systemd timer
+      ansible.builtin.systemd:
+        name: borgmatic.timer
+        enabled: true
+        state: started
