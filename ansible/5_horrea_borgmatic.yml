@@ -26,10 +26,21 @@
 - name: Install borgmatic and configure systemd service
   hosts: horrea
   become: true
+  vars_prompt:
+    - name: borg_passphrase
+      prompt: "Borg Passphrase"
+      private: yes
   tasks:
     - name: Install borgmatic package
       ansible.builtin.pacman:
         name: borgmatic
+
+    - name: Create encrypted systemd credential for borgmatic
+      ansible.builtin.command:
+        cmd: systemd-creds encrypt - /etc/credstore.encrypted/borgmatic.pw
+        stdin: "{{ borg_passphrase }}"
+      no_log: true
+
     - name: Create borgmatic systemd service file
       ansible.builtin.copy:
         dest: /etc/systemd/system/borgmatic.service

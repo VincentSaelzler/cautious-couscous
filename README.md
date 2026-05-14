@@ -1,20 +1,11 @@
 # cautious-couscous
+
 Home Lab | Cadence | Apr 2026
 
 ## Configure SSH Key Authentication
 
-⚠️⚠️⚠️ This private key file is the root of all trust.
-
-ℹ️ manually associate ssh key with borgbase account and repo
-
-Do this whether creating backups or restoring them.
-
-⚠️ generate a passphrase and save it to lastpass
-
-ℹ️ manually create a repository on borgbase
-
 ```sh
-# generate ssh key ⚠️
+⚠️⚠️⚠️ ROOT OF ALL TRUST ⚠️⚠️⚠️
 ssh-keygen
 ```
 
@@ -23,11 +14,22 @@ ssh-keygen
 ssh-keygen -R horrea
 ssh-copy-id horrea
 ssh horrea
-
-# save passphrase via systemd
-sudo su
-systemd-ask-password -n | systemd-creds encrypt - /etc/credstore.encrypted/borgmatic.pw
+⚠️ APPEND-ONLY AUTHENTICATION ON BORGBASE ⚠️
+ssh-keygen
+cat ~/.ssh/id_ed25519.pub
 ```
+
+## Borgbase Repositories
+
+ℹ️ manually create a repository on borgbase
+
+ℹ️ manually associate `horrea` ssh key with borgbase account and repo
+
+ℹ️ manually update repo url in `./ansible/templates/borgmatic_config.yml.j2`
+
+## Repository Encryption
+
+⚠️ generate a passphrase and save it to lastpass
 
 ## Install and Configure Ansible on the Controller Machine
 
@@ -49,4 +51,4 @@ sudo brightnessctl set 100%
 sudo brightnessctl set 0%
 ```
 
-Lots of documentation is at https://github.com/VincentSaelzler/onebox/
+Lots of documentation is at <https://github.com/VincentSaelzler/onebox/>
