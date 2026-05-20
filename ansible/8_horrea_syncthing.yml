@@ -1,0 +1,39 @@
+---
+- name: Install syncthing package
+  hosts: horrea
+  become: true
+  tasks:
+    - name: Install syncthing and python-lxml packages
+      ansible.builtin.pacman:
+        name:
+          - syncthing
+          - python-lxml
+
+    - name: Enable lingering for marcus
+      become: true
+      ansible.builtin.command:
+        cmd: loginctl enable-linger marcus
+      args:
+        creates: /var/lib/systemd/linger/marcus
+
+- name: Configure syncthing for marcus
+  hosts: horrea
+  tasks:
+    - name: Generate syncthing config if missing
+      ansible.builtin.command:
+        cmd: syncthing generate
+      args:
+        creates: "/home/marcus/.local/state/syncthing/config.xml"
+
+    - name: Set Syncthing GUI to listen on all interfaces
+      community.general.xml:
+        path: "/home/marcus/.local/state/syncthing/config.xml"
+        xpath: /configuration/gui/address
+        value: 0.0.0.0:8384
+
+    - name: Enable and start syncthing user service
+      ansible.builtin.systemd:
+        name: syncthing.service
+        enabled: true
+        state: started
+        scope: user
