@@ -53,9 +53,9 @@
         return_content: true
       register: syncthing_config
 
-    - name: Display Syncthing config response
-      ansible.builtin.debug:
-        var: syncthing_config.json
+    # - name: Display Syncthing config response
+    #   ansible.builtin.debug:
+    #     var: syncthing_config.json
 
     - name: Add backup folders via REST API
       ansible.builtin.uri:
@@ -66,8 +66,8 @@
           Content-Type: "application/json"
         body_format: json
         body:
-          id: "{{ item | basename | lower | replace(' ', '-') }}"
-          path: "{{ item }}"
+          id: "{{ item | basename }}"
+          path: "{{ item | basename }}"
         status_code: 200
       loop: "{{ backup_dirs }}"
-      when: "(item | basename | lower | replace(' ', '-')) not in (syncthing_config.json.folders | default([]) | map(attribute='id') | list)"
+      when: "(item | basename) not in (syncthing_config.json.folders | map(attribute='id') | list)"
