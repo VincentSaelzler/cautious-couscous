@@ -41,11 +41,12 @@
 - name: Test Syncthing REST API
   hosts: horrea
   vars:
+    # we are still just doing testing, so it's fine to hard-code and have in source control
     syncthing_api_key: "7LuwxNoGE9noqcz2fLXAUiEEfDr5SU2u"
   tasks:
     - name: Fetch Syncthing config via REST API
       ansible.builtin.uri:
-        url: "http://localhost:8384/rest/system/config"
+        url: "http://localhost:8384/rest/config"
         method: GET
         headers:
           X-API-Key: "{{ syncthing_api_key }}"
@@ -56,15 +57,17 @@
       ansible.builtin.debug:
         var: syncthing_config.json
 
-    - name: Add Socials folder via REST API
+    - name: Add backup folders via REST API
       ansible.builtin.uri:
-        url: "http://localhost:8384/rest/config/folders/socials-sync"
-        method: PUT
+        url: "http://localhost:8384/rest/config/folders"
+        method: POST
         headers:
           X-API-Key: "{{ syncthing_api_key }}"
           Content-Type: "application/json"
         body_format: json
         body:
-          id: "socials-sync"
-          path: "~/Socials"
-        status_code: [200, 201]
+          id: "{{ item | basename | lower | replace(' ', '-') }}"
+          path: "{{ item }}"
+        status_code: 200
+      loop: "{{ backup_dirs }}"
+      when: "(item | basename | lower | replace(' ', '-')) not in (syncthing_config.json.folders | default([]) | map(attribute='id') | list)"

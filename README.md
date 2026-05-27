@@ -110,3 +110,15 @@ Adjust laptop brightness manually:
 sudo brightnessctl set 100%
 sudo brightnessctl set 0%
 ```
+
+### Syncthing
+
+on client: install syncthing
+
+add remote (horrea)
+
+# add folder(s) - note that this might not be required if auto-accepting shares, but don't do that right now so i don't accidentally wipe stuff out.
+
+nope, instead tick both introducer and auto accept
+
+check that things are syncing.
