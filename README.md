@@ -4,7 +4,7 @@ Home Lab | Cadence | Apr 2026
 
 Lots of documentation is at <https://github.com/VincentSaelzler/onebox/>
 
-## 1. OS Provisioning (`horrea`)
+## OS Provisioning (`horrea`)
 
 Boot the laptop (`horrea`) into the Arch Linux live environment (`archiso`) and set a temporary root password:
 
@@ -58,7 +58,7 @@ archinstall --config /usb/horrea/user_configuration.json --creds /usb/horrea/use
 poweroff
 ```
 
-## 2. SSH Authentication
+## SSH Authentication
 
 Establish trust with the newly installed host from the controller (the root of all trust):
 
@@ -74,17 +74,18 @@ Generate a dedicated SSH key on `horrea` for **append-only authentication to Bor
 ```sh
 ssh-keygen -t ed25519
 cat ~/.ssh/id_ed25519.pub
+# add to borgbase repo ssh keys (append-only)
 ssh repo_id@repo_id.repo.borgbase.com # establish trust with Borgbase public key
 ```
 
-## 3. Borgbase Repository Setup
+## Borgbase Repository Setup
 
-1. **Create Repository:** Manually create a new repository on Borgbase.
-2. **Add Key:** Associate `horrea`'s new SSH key with your Borgbase account and grant it append-only access to the repository.
-3. **Update Config:** Update the repository URL in `./ansible/templates/borgmatic_config.yml.j2`.
-4. **Encryption:** Generate a strong passphrase for the repository and save it in LastPass.
+- **Create Repository:** Manually create a new repository on Borgbase.
+- **Add Key:** Associate `horrea`'s new SSH key with your Borgbase account and grant it append-only access to the repository.
+- **Update Config:** Update the repository URL in `./ansible/templates/borgmatic_config.yml.j2`.
+- **Encryption:** Generate a strong passphrase for the repository and save it in LastPass.
 
-## 4. Ansible Deployment
+## Ansible Deployment
 
 Install Ansible on the controller PC and deploy the configuration:
 
@@ -93,16 +94,37 @@ Install Ansible on the controller PC and deploy the configuration:
 sudo pacman -S ansible # Arch
 # sudo apt install ansible-core # Ubuntu/Debian
 
+git clone https://github.com/vincentsaelzler/cautious-couscous.git
 cd ~/cautious-couscous/ansible
 
 # Configure the local controller host
 ansible-playbook 0_bootstrap.yml -i ./files/inventory.yml --ask-become-pass
+```
 
-# Run remaining deployment playbooks
+## Provision Horrea and Restore Files from Backup
+
+It is safe to sequentially run all playbooks **before** `horrea_borgmatic_backup`.
+
+Critically, the `horrea_syncthing` playbook must be run before `horrea_borgmatic_backup`, otherwise borgmatic could be backing up files in a directory which are missing files (or even subdirectories) on coliseum which were updated after horrea was shut down.
+
+```sh
 ansible-playbook --ask-become-pass <playbook_name.yml>
 ```
 
-### Misc
+## Mutually Connect Hosts via Syncthing
+
+Use the Web UI. On each side, click "Add Remote Device".
+
+The following table assumes that both `horrea` and `coliseum` have already been configured to share their own folders locally.
+
+| Setting | Horrea Web UI | Coliseum Web UI |
+| --- | --- | --- |
+| Host to add | coliseum | horrea |
+| Introducer | no | **YES** |
+| Auto accept | no | no |
+| Folders to share | all | all |
+
+## Misc
 
 Adjust laptop brightness manually:
 
@@ -110,15 +132,3 @@ Adjust laptop brightness manually:
 sudo brightnessctl set 100%
 sudo brightnessctl set 0%
 ```
-
-### Syncthing
-
-on client: install syncthing
-
-add remote (horrea)
-
-# add folder(s) - note that this might not be required if auto-accepting shares, but don't do that right now so i don't accidentally wipe stuff out.
-
-nope, instead tick both introducer and auto accept
-
-check that things are syncing.

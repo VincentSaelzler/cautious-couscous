@@ -24,7 +24,7 @@
         src: borgmatic_config.yml.j2
         dest: /home/marcus/.config/borgmatic/config.yaml
 
-    - name: Initialize borgmatic repository
+    - name: Initialize borgmatic repositories
       ansible.builtin.command: borgmatic repo-create
       environment:
         BORG_PASSPHRASE: "{{ borg_passphrase }}"

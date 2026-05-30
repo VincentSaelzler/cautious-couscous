@@ -38,12 +38,20 @@
         state: started
         scope: user
 
-- name: Test Syncthing REST API
+- name: Configure Syncthing via REST API
   hosts: horrea
-  vars:
-    # we are still just doing testing, so it's fine to hard-code and have in source control
-    syncthing_api_key: "7LuwxNoGE9noqcz2fLXAUiEEfDr5SU2u"
   tasks:
+    - name: Read API key from Syncthing config
+      community.general.xml:
+        path: "/home/marcus/.local/state/syncthing/config.xml"
+        xpath: /configuration/gui/apikey
+        content: text
+      register: syncthing_xml
+
+    - name: Set API key fact
+      ansible.builtin.set_fact:
+        syncthing_api_key: "{{ syncthing_xml.matches[0].apikey }}"
+
     - name: Fetch Syncthing config via REST API
       ansible.builtin.uri:
         url: "http://localhost:8384/rest/config"
@@ -52,10 +60,6 @@
           X-API-Key: "{{ syncthing_api_key }}"
         return_content: true
       register: syncthing_config
-
-    # - name: Display Syncthing config response
-    #   ansible.builtin.debug:
-    #     var: syncthing_config.json
 
     - name: Add backup folders via REST API
       ansible.builtin.uri:
@@ -67,7 +71,6 @@
         body_format: json
         body:
           id: "{{ item | basename }}"
-          path: "{{ item | basename }}"
-        status_code: 200
+          path: "{{ item }}"
       loop: "{{ backup_dirs }}"
       when: "(item | basename) not in (syncthing_config.json.folders | map(attribute='id') | list)"
