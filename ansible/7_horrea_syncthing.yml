@@ -74,3 +74,17 @@
           path: "{{ item }}"
       loop: "{{ backup_dirs }}"
       when: "(item | basename) not in (syncthing_config.json.folders | map(attribute='id') | list)"
+
+    - name: Add sync-only folders via REST API (not backed up by borgmatic)
+      ansible.builtin.uri:
+        url: "http://localhost:8384/rest/config/folders"
+        method: POST
+        headers:
+          X-API-Key: "{{ syncthing_api_key }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          id: "{{ item | basename }}"
+          path: "{{ item }}"
+      loop: "{{ sync_extra_dirs }}"
+      when: "(item | basename) not in (syncthing_config.json.folders | map(attribute='id') | list)"

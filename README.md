@@ -75,7 +75,8 @@ Generate a dedicated SSH key on `horrea` for **append-only authentication to Bor
 ssh-keygen -t ed25519
 cat ~/.ssh/id_ed25519.pub
 # add to borgbase repo ssh keys (append-only)
-ssh repo_id@repo_id.repo.borgbase.com # establish trust with Borgbase public key
+# establish trust with Borgbase public key
+ssh -o RequestTTY=no repo_id@repo_id.repo.borgbase.com
 ```
 
 ## Borgbase Repository Setup

@@ -1,0 +1,4 @@
+---
+# Directories synced via Syncthing but excluded from borgmatic backups
+sync_extra_dirs:
+  - "/home/marcus/Downloads"
