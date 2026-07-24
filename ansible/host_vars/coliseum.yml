@@ -1,10 +1,10 @@
 ---
-backup_dirs:
+sync_dirs:
   - "/home/marcus/Camera"
   - "/home/marcus/Desktop Bethany"
   - "/home/marcus/Documents"
+  - "/home/marcus/Downloads"
   - "/home/marcus/Family Photos"
   - "/home/marcus/Pictures"
   - "/home/marcus/Socials"
   - "/home/marcus/Videos"
-borgbase_repo_id: m446hp96

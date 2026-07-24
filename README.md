@@ -116,14 +116,14 @@ ansible-playbook --ask-become-pass <playbook_name.yml>
 
 Use the Web UI. On each side, click "Add Remote Device".
 
-The following table assumes that both `horrea` and `coliseum` have already been configured to share their own folders locally.
+The following table assumes all hosts have already been configured to share their own folders locally (via Ansible).
 
-| Setting | Horrea Web UI | Coliseum Web UI |
-| --- | --- | --- |
-| Host to add | coliseum | horrea |
-| Introducer | no | **YES** |
-| Auto accept | no | no |
-| Folders to share | all | all |
+| Setting | Horrea Web UI | Coliseum Web UI | Surface Web UI |
+| --- | --- | --- | --- |
+| Hosts to add | coliseum + surface | horrea | horrea |
+| Introducer | no | **YES** | no | no |
+| Auto accept | no | no | no | no |
+| Folders to share | all | all | Downloads + Documents |
 
 ## Misc
 

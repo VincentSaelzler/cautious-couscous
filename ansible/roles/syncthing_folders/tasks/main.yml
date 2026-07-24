@@ -1,0 +1,34 @@
+---
+- name: Read API key from Syncthing config
+  community.general.xml:
+    path: "/home/marcus/.local/state/syncthing/config.xml"
+    xpath: /configuration/gui/apikey
+    content: text
+  register: syncthing_xml
+
+- name: Set API key fact
+  ansible.builtin.set_fact:
+    syncthing_api_key: "{{ syncthing_xml.matches[0].apikey }}"
+
+- name: Fetch Syncthing config via REST API
+  ansible.builtin.uri:
+    url: "http://localhost:8384/rest/config"
+    method: GET
+    headers:
+      X-API-Key: "{{ syncthing_api_key }}"
+    return_content: true
+  register: syncthing_config
+
+- name: Add sync folders via REST API
+  ansible.builtin.uri:
+    url: "http://localhost:8384/rest/config/folders"
+    method: POST
+    headers:
+      X-API-Key: "{{ syncthing_api_key }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      id: "{{ item | basename }}"
+      path: "{{ item }}"
+  loop: "{{ sync_dirs }}"
+  when: "(item | basename) not in (syncthing_config.json.folders | map(attribute='id') | list)"

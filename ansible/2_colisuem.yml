@@ -1,0 +1,26 @@
+---
+- name: Install Syncthing
+  hosts: coliseum
+  become: true
+  tasks:
+    - name: Install required dependencies
+      ansible.builtin.pacman:
+        update_cache: true
+        name:
+          - python-lxml
+          - syncthing
+
+- name: Configure syncthing for marcus
+  hosts: coliseum
+  tasks:
+    - name: Enable and start syncthing user service
+      ansible.builtin.systemd:
+        name: syncthing.service
+        enabled: true
+        state: started
+        scope: user
+
+- name: Configure Syncthing via REST API
+  hosts: coliseum
+  roles:
+    - syncthing_folders

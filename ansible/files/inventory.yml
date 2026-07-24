@@ -3,6 +3,8 @@ all:
   hosts:
     horrea:
     oculus:
+    coliseum:
+      ansible_connection: local
     localhost:
       ansible_connection: local
     # wsl is configured to use "mirrored" networking,
