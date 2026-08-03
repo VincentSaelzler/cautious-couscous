@@ -4,6 +4,37 @@ Home Lab | Cadence | Apr 2026
 
 Lots of documentation is at <https://github.com/VincentSaelzler/onebox/>
 
+## OS Provisioning (`tabula`)
+
+Boot the laptop (`tabula`) into BIOS. Erase the NVMe drive using the "cryptographic keys" option. Restart
+
+Boot the laptop (`tabula`) into the Arch Linux live environment (`archiso`) and set a temporary root password:
+
+```sh
+passwd
+```
+
+From the controller, connect to the live environment 
+
+```sh
+ssh-keygen -R archiso
+ssh root@archiso
+```
+
+Install Arch Linux using the saved configuration on the Ventoy USB (it evolves often, so it is not in source control), then power off:
+
+```sh
+partprobe
+mkdir /usb
+lsblk
+mount /dev/mapper/sda1 /usb  # Adjust path based on lsblk
+
+archinstall --config /usb/tabula/user_configuration.json --creds /usb/tabula/user_credentials.json
+poweroff
+```
+
+*see instructions below related to the controller PC. these i instructions should actually be above horrea provisioning.*
+
 ## OS Provisioning (`horrea`)
 
 Boot the laptop (`horrea`) into the Arch Linux live environment (`archiso`) and set a temporary root password:
