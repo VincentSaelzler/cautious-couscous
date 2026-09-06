@@ -149,12 +149,20 @@ Use the Web UI. On each side, click "Add Remote Device".
 
 The following table assumes all hosts have already been configured to share their own folders locally (via Ansible).
 
-| Setting | Horrea Web UI | Coliseum Web UI | Surface Web UI |
-| --- | --- | --- | --- |
-| Hosts to add | coliseum + surface | horrea | horrea |
-| Introducer | no | **YES** | no | no |
-| Auto accept | no | no | no | no |
-| Folders to share | all | all | Downloads + Documents |
+| Setting          | Horrea Web UI     | Coliseum Web UI | Tabula Web UI             |
+|------------------|-------------------|-----------------|---------------------------|
+| Hosts to add     | coliseum + tabula | horrea          | horrea                    |
+| Introducer       | no                | **YES**         | **YES**                   |
+| Auto accept      | no                | no              | no                        |
+| Folders to share | all               | all             | **Downloads + Documents** |
+
+## Start Backing Up Again
+
+Once the syncthing stuff has been manually verified to be running again, start backing up the version of the files as they exist on `horrea`
+
+```sh
+ansible-playbook --ask-become-pass horrea_borgmatic_backup.yml
+```
 
 ## Misc
 
