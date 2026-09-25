@@ -1,38 +1,16 @@
 ---
 - name: Install Syncthing
-  hosts: surface
+  hosts: tabula
   become: true
   tasks:
     - name: Install required dependencies
-      ansible.builtin.apt:
+      ansible.builtin.pacman:
         name:
-          - curl
-          - gpg
-          - python3-lxml
-        state: present
-        update_cache: true
-
-    - name: Add Syncthing APT signing key
-      ansible.builtin.get_url:
-        url: https://syncthing.net/release-key.gpg
-        dest: /usr/share/keyrings/syncthing-archive-keyring.gpg
-
-    - name: Add Syncthing APT repository
-      ansible.builtin.apt_repository:
-        repo: >-
-          deb [signed-by=/usr/share/keyrings/syncthing-archive-keyring.gpg]
-          https://apt.syncthing.net/ syncthing stable
-        filename: syncthing
-        state: present
-
-    - name: Install Syncthing package
-      ansible.builtin.apt:
-        name: syncthing
-        state: present
-        update_cache: true
+          - python-lxml
+          - syncthing
 
 - name: Configure syncthing for marcus
-  hosts: surface
+  hosts: tabula
   tasks:
     - name: Enable and start syncthing user service
       ansible.builtin.systemd:
@@ -42,6 +20,6 @@
         scope: user
 
 - name: Configure Syncthing via REST API
-  hosts: surface
+  hosts: tabula
   roles:
     - syncthing_folders

@@ -9,4 +9,5 @@ all:
       ansible_connection: local
     # wsl is configured to use "mirrored" networking,
     # so reference the windows host name; not the linux hostname
-    surface:
+    tabula:
+      ansible_connection: local
