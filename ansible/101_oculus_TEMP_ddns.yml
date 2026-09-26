@@ -1,0 +1,65 @@
+---
+- name: Deploy Porkbun DDNS Updater
+  hosts: oculus-dmz
+  tasks:
+    - name: Ensure target directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - ~/.local/bin
+        - ~/.config/systemd/user
+
+    - name: Download the latest syncrecords.pyz release
+      ansible.builtin.get_url:
+        url: https://github.com/VincentSaelzler/porkbun-ddns-pydantic/releases/latest/download/syncrecords.pyz
+        dest: ~/.local/bin/syncrecords
+        mode: '0755'
+        force: yes
+      notify: Restart ddns timer
+
+    - name: Create systemd user service file
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=Porkbun DDNS Updater
+          After=network-online.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=%h/.local/bin/syncrecords
+          Environment="SHIV_ROOT=%h/.shiv"
+          
+          # If using LoadCredential for the API keys:
+          LoadCredentialEncrypted=PORKBUN_API_KEY
+          LoadCredentialEncrypted=PORKBUN_SECRET_API_KEY
+        dest: ~/.config/systemd/user/porkbun-ddns.service
+
+    - name: Create systemd user timer file (runs minutely)
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=Run Porkbun DDNS Updater every minute
+
+          [Timer]
+          OnCalendar=minutely
+
+          [Install]
+          WantedBy=timers.target
+        dest: ~/.config/systemd/user/porkbun-ddns.timer
+
+    - name: Enable and start the timer
+      ansible.builtin.systemd:
+        name: porkbun-ddns.timer
+        state: started
+        enabled: yes
+        scope: user
+        daemon_reload: yes
+
+  handlers:
+    - name: Restart ddns timer
+      ansible.builtin.systemd:
+        name: porkbun-ddns.timer
+        state: restarted
+        scope: user
+        daemon_reload: yes

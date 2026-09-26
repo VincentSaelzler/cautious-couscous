@@ -2,7 +2,7 @@
 all:
   hosts:
     horrea:
-    oculus:
+    oculus-dmz:
     coliseum:
       ansible_connection: local
     localhost:
