@@ -1,0 +1,14 @@
+# Static homepage
+vincent.saelzler.com {
+    root * /var/www/site
+    file_server
+}
+
+# Frigate NVR reverse proxy
+walter.saelzler.org {
+    reverse_proxy https://oculus-dmz.lan:8971 {
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
+}

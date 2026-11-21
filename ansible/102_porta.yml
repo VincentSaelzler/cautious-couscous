@@ -1,0 +1,40 @@
+---
+- name: Install and configure Caddy
+  hosts: porta
+  become: true
+
+  tasks:
+    - name: Install Caddy
+      ansible.builtin.apt:
+        name: caddy
+        state: present
+        update_cache: true
+
+    - name: Create static site directory
+      ansible.builtin.file:
+        path: /var/www/site
+        state: directory
+        owner: caddy
+        group: caddy
+        mode: "0755"
+
+    - name: Deploy Caddyfile
+      ansible.builtin.template:
+        src: templates/porta_caddyfile.j2
+        dest: /etc/caddy/Caddyfile
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload Caddy
+
+    - name: Enable and start Caddy service
+      ansible.builtin.systemd:
+        name: caddy.service
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload Caddy
+      ansible.builtin.systemd:
+        name: caddy.service
+        state: reloaded
