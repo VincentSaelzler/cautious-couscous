@@ -89,6 +89,35 @@ archinstall --config /usb/horrea/user_configuration.json --creds /usb/horrea/use
 poweroff
 ```
 
+## OS Provisioning (`porta`)
+
+Flash Raspberry Pi OS Lite (64-bit Debian) to an SD card / SSD (e.g. using Raspberry Pi Imager with hostname `porta` and user `marcus`).
+
+Establish SSH trust from the controller:
+
+```sh
+ssh-keygen -R porta
+ssh-copy-id porta
+```
+
+Deploy configurations via Ansible. The DDNS playbook will interactively prompt for the Porkbun API key and secret — it encrypts them on the host at run time, so they are never stored in plaintext or bash history:
+
+```sh
+cd ~/cautious-couscous/ansible
+ansible-playbook --ask-become-pass 101_porta_ddns.yml
+ansible-playbook --ask-become-pass 102_porta_caddy.yml
+```
+
+Verify the timer and service are running:
+
+```sh
+ssh porta
+
+# Confirm services are running
+systemctl status porkbun-ddns.service
+systemctl status caddy.service
+```
+
 ## SSH Authentication
 
 Establish trust with the newly installed host from the controller (the root of all trust):

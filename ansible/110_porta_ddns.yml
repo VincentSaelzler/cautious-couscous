@@ -1,0 +1,141 @@
+---
+- name: Deploy Porkbun DDNS Updater
+  hosts: porta
+  become: true
+  vars_prompt:
+    - name: porkbun_api_key
+      prompt: "Porkbun API Key"
+      private: yes
+    - name: porkbun_secret_api_key
+      prompt: "Porkbun Secret API Key"
+      private: yes
+  tasks:
+    - name: Ensure /etc/credstore.encrypted directory exists
+      ansible.builtin.file:
+        path: /etc/credstore.encrypted
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
+    - name: Create encrypted systemd credential for Porkbun API Key
+      ansible.builtin.command:
+        cmd: systemd-creds encrypt - /etc/credstore.encrypted/PORKBUN_API_KEY
+        stdin: "{{ porkbun_api_key }}"
+      no_log: true
+
+    - name: Create encrypted systemd credential for Porkbun Secret API Key
+      ansible.builtin.command:
+        cmd: systemd-creds encrypt - /etc/credstore.encrypted/PORKBUN_SECRET_API_KEY
+        stdin: "{{ porkbun_secret_api_key }}"
+      no_log: true
+
+    - name: Ensure build dependencies are installed
+      ansible.builtin.apt:
+        name:
+          - git
+          - python3-venv
+          - python3-pip
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Ensure build workspace exists
+      ansible.builtin.file:
+        path: /home/marcus/.cache/build
+        state: directory
+        owner: marcus
+        group: marcus
+        mode: "0755"
+
+    - name: Clone porkbun-ddns-pydantic repository
+      ansible.builtin.git:
+        repo: https://github.com/VincentSaelzler/porkbun-ddns-pydantic.git
+        dest: /home/marcus/.cache/build/porkbun-ddns-pydantic
+        version: main
+        force: yes
+      become: false
+
+    - name: Create build virtualenv and install shiv
+      ansible.builtin.pip:
+        name:
+          - pip
+          - shiv
+        state: latest
+        virtualenv: /home/marcus/.cache/build/venv
+        virtualenv_command: python3 -m venv
+      become: false
+
+    - name: Build syncrecords.pyz with shiv
+      ansible.builtin.command:
+        cmd: /home/marcus/.cache/build/venv/bin/shiv -c syncrecords -o /home/marcus/.cache/build/syncrecords.pyz /home/marcus/.cache/build/porkbun-ddns-pydantic
+      become: false
+
+    - name: Ensure /usr/local/bin exists
+      ansible.builtin.file:
+        path: /usr/local/bin
+        state: directory
+
+    - name: Deploy syncrecords to /usr/local/bin
+      ansible.builtin.copy:
+        src: /home/marcus/.cache/build/syncrecords.pyz
+        dest: /usr/local/bin/syncrecords
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      notify: Restart ddns timer
+
+    - name: Remove stale shiv extract cache
+      ansible.builtin.file:
+        path: /home/marcus/.shiv
+        state: absent
+      become: false
+
+    - name: Create systemd system service file
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/porkbun-ddns.service
+        content: |
+          [Unit]
+          Description=Porkbun DDNS Updater
+          After=network-online.target
+
+          [Service]
+          Type=oneshot
+          User=marcus
+
+          # Have systemd decrypt the encrypted blobs and expose them at
+          # /run/credentials/<unit>/ before switching to User=marcus.
+          LoadCredentialEncrypted=PORKBUN_API_KEY:/etc/credstore.encrypted/PORKBUN_API_KEY
+          LoadCredentialEncrypted=PORKBUN_SECRET_API_KEY:/etc/credstore.encrypted/PORKBUN_SECRET_API_KEY
+
+          ExecStart=/usr/local/bin/syncrecords
+      notify: Restart ddns timer
+
+    - name: Create systemd system timer file (runs minutely)
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/porkbun-ddns.timer
+        content: |
+          [Unit]
+          Description=Run Porkbun DDNS Updater every minute
+
+          [Timer]
+          OnCalendar=minutely
+
+          [Install]
+          WantedBy=timers.target
+      notify: Restart ddns timer
+
+    - name: Enable and start the timer
+      ansible.builtin.systemd:
+        name: porkbun-ddns.timer
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+  handlers:
+    - name: Restart ddns timer
+      ansible.builtin.systemd:
+        name: porkbun-ddns.timer
+        state: restarted
+        daemon_reload: yes
