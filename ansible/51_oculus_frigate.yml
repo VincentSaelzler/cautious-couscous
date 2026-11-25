@@ -1,0 +1,85 @@
+---
+- name: Install and run Frigate via rootful Podman Quadlet
+  hosts: oculus-dmz
+  become: true
+
+  tasks:
+    - name: Install Podman
+      ansible.builtin.pacman:
+        update_cache: true
+        name:
+          - podman
+        state: present
+
+    - name: Ensure Frigate host directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: marcus
+        group: marcus
+        mode: "0755"
+      loop:
+        - /mnt/config/frigate
+        - /mnt/media/frigate
+
+    - name: Pull Frigate container image
+      containers.podman.podman_image:
+        name: ghcr.io/blakeblackshear/frigate
+        tag: stable
+        state: present
+
+    - name: Ensure Podman Quadlet directory exists
+      ansible.builtin.file:
+        path: /etc/containers/systemd
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy Frigate Quadlet container unit
+      ansible.builtin.copy:
+        dest: /etc/containers/systemd/frigate.container
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Frigate NVR
+          After=network-online.target
+          Wants=network-online.target
+
+          [Container]
+          ContainerName=frigate
+          Image=ghcr.io/blakeblackshear/frigate:stable
+          StopTimeout=30
+          ShmSize=2g
+          AddDevice=/dev/dri/renderD128:/dev/dri/renderD128
+          Volume=/etc/localtime:/etc/localtime:ro
+          Volume=/mnt/config/frigate:/config
+          Volume=/mnt/media/frigate:/media/frigate
+          Tmpfs=/tmp/cache:size=1000000000
+          Network=host
+
+          [Service]
+          Restart=always
+          RestartSec=10s
+          TimeoutStopSec=40s
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: Restart frigate
+
+    - name: Start Frigate Quadlet service
+      ansible.builtin.systemd:
+        name: frigate.service
+        daemon_reload: true
+        state: started
+      register: frigate_service
+
+  handlers:
+    - name: Restart frigate
+      ansible.builtin.systemd:
+        name: frigate.service
+        daemon_reload: true
+        state: restarted
+      when: not frigate_service.changed
