@@ -97,15 +97,15 @@ Establish SSH trust from the controller:
 
 ```sh
 ssh-keygen -R porta
-ssh-copy-id porta
+ssh porta
 ```
 
 Deploy configurations via Ansible. The DDNS playbook will interactively prompt for the Porkbun API key and secret — it encrypts them on the host at run time, so they are never stored in plaintext or bash history:
 
 ```sh
 cd ~/cautious-couscous/ansible
-ansible-playbook --ask-become-pass 101_porta_ddns.yml
-ansible-playbook --ask-become-pass 102_porta_caddy.yml
+ansible-playbook --ask-become-pass 110_porta_ddns.yml
+ansible-playbook --ask-become-pass 111_porta_caddy.yml
 ```
 
 Verify the timer and service are running:

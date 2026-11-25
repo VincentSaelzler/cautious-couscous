@@ -18,6 +18,14 @@
         group: caddy
         mode: "0755"
 
+    - name: Deploy static index.html
+      ansible.builtin.copy:
+        src: files/index.html
+        dest: /var/www/site/index.html
+        owner: caddy
+        group: caddy
+        mode: "0644"
+
     - name: Deploy Caddyfile
       ansible.builtin.template:
         src: templates/porta_caddyfile.j2
