@@ -1,0 +1,90 @@
+---
+- name: Configure OS networking on oculus
+  hosts: oculus-dmz
+  become: true
+
+  tasks:
+    - name: Find existing .network file for enp1s0 (DMZ)
+      ansible.builtin.find:
+        paths: /etc/systemd/network
+        patterns: "*.network"
+        contains: "^Name=enp1s0$"
+      register: dmz_network_files
+
+    - name: Ensure exactly one base .network file exists for enp1s0
+      ansible.builtin.assert:
+        that:
+          - dmz_network_files.matched == 1
+        fail_msg: >-
+          Expected exactly one .network file for enp1s0 in /etc/systemd/network/.
+
+    - name: Set active DMZ .network file path
+      ansible.builtin.set_fact:
+        dmz_network_file: "{{ dmz_network_files.files[0].path }}"
+
+    - name: Ensure drop-in directory exists for enp1s0
+      ansible.builtin.file:
+        path: "{{ dmz_network_file }}.d"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Enable DHCP search domains for enp1s0 (DMZ) via drop-in
+      ansible.builtin.copy:
+        dest: "{{ dmz_network_file }}.d/10-dmz.conf"
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [DHCPv4]
+          UseDomains=yes
+      notify: Reload systemd-networkd
+
+    - name: Configure NVR interface (enp2s0)
+      ansible.builtin.copy:
+        dest: /etc/systemd/network/20-nvr.network
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Match]
+          Name=enp2s0
+
+          [Network]
+          DHCP=ipv4
+          IPv6AcceptRA=no
+          DNSDefaultRoute=false
+
+          [DHCPv4]
+          UseRoutes=false
+          UseDNS=false
+          UseNTP=false
+      notify: Reload systemd-networkd
+
+    - name: Ensure systemd-networkd and systemd-resolved are enabled and started
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop:
+        - systemd-networkd.service
+        - systemd-resolved.service
+
+    - name: Point /etc/resolv.conf to systemd-resolved stub
+      ansible.builtin.file:
+        src: /run/systemd/resolve/stub-resolv.conf
+        dest: /etc/resolv.conf
+        state: link
+        force: true
+      notify: Restart systemd-resolved
+
+  handlers:
+    - name: Reload systemd-networkd
+      ansible.builtin.command:
+        cmd: networkctl reload
+
+    - name: Restart systemd-resolved
+      ansible.builtin.systemd:
+        name: systemd-resolved.service
+        state: restarted
