@@ -33,7 +33,36 @@ archinstall --config /usb/tabula/user_configuration.json --creds /usb/tabula/use
 poweroff
 ```
 
-*see instructions below related to the controller PC. these i instructions should actually be above horrea provisioning.*
+## OS Provisioning (`oculus`)
+
+Boot the mini PC (`oculus`) into the Arch Linux live environment (`archiso`) and set a temporary root password:
+
+```sh
+passwd
+```
+
+From the controller, connect to the live environment to format/wipe the NVMe drive and install Arch Linux:
+
+```sh
+ssh-keygen -R archiso
+ssh root@archiso
+
+# Format the NVMe drive
+nvme id-ns /dev/nvme0n1
+nvme format --lbaf=1 /dev/nvme0n1
+```
+
+Install Arch Linux using the saved configuration on the Ventoy USB (it evolves often, so it is not in source control), then power off:
+
+```sh
+partprobe
+mkdir /usb
+lsblk
+mount /dev/mapper/sda1 /usb  # Adjust path based on lsblk
+
+archinstall --config /usb/oculus/user_configuration.json --creds /usb/oculus/user_credentials.json
+poweroff
+```
 
 ## OS Provisioning (`horrea`)
 
@@ -104,8 +133,8 @@ Deploy configurations via Ansible. The DDNS playbook will interactively prompt f
 
 ```sh
 cd ~/cautious-couscous/ansible
-ansible-playbook --ask-become-pass 110_porta_ddns.yml
-ansible-playbook --ask-become-pass 111_porta_caddy.yml
+ansible-playbook --ask-become-pass 40_porta_ddns.yml
+ansible-playbook --ask-become-pass 41_porta_caddy.yml
 ```
 
 Verify the timer and service are running:
@@ -159,14 +188,14 @@ git clone https://github.com/vincentsaelzler/cautious-couscous.git
 cd ~/cautious-couscous/ansible
 
 # Configure the local controller host
-ansible-playbook 0_bootstrap.yml -i ./files/inventory.yml --ask-become-pass
+ansible-playbook 00_bootstrap.yml -i ./files/inventory.yml --ask-become-pass
 ```
 
 ## Provision Horrea and Restore Files from Backup
 
-It is safe to sequentially run all playbooks **before** `horrea_borgmatic_backup`.
+It is safe to sequentially run all playbooks **before** `35_horrea_borgmatic_backup`.
 
-Critically, the `horrea_syncthing` playbook must be run before `horrea_borgmatic_backup`, otherwise borgmatic could be backing up files in a directory which are missing files (or even subdirectories) on coliseum which were updated after horrea was shut down.
+Critically, the `34_horrea_syncthing` playbook must be run before `35_horrea_borgmatic_backup`, otherwise borgmatic could be backing up files in a directory which are missing files (or even subdirectories) on coliseum which were updated after horrea was shut down.
 
 ```sh
 ansible-playbook --ask-become-pass <playbook_name.yml>
@@ -190,7 +219,7 @@ The following table assumes all hosts have already been configured to share thei
 Once the syncthing stuff has been manually verified to be running again, start backing up the version of the files as they exist on `horrea`
 
 ```sh
-ansible-playbook --ask-become-pass horrea_borgmatic_backup.yml
+ansible-playbook --ask-become-pass 35_horrea_borgmatic_backup.yml
 ```
 
 ## Misc
